@@ -11,6 +11,6 @@ type Field interface {
 }
 
 func main() {
-	myApp := app.New()
+	myApp := app.NewWithID("org.fcbh.artificial_polyglot")
 	PresentForm(myApp)
 }

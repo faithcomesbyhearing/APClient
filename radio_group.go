@@ -44,8 +44,16 @@ func (r *RadioGroup) SetSelected(selected int) {
 }
 
 func (r RadioGroup) Load() {
-	//r.Group.SetSelected(r.Descriptions[r.Default])
-	//r.Entry.SetText(r.Text)
+	count := 0
+	for i := range r.Items {
+		if *r.Items[i].Value {
+			r.Group.SetSelected(r.ItemLabels[i])
+			count++
+		}
+	}
+	if count == 0 { // Set Defaults
+		r.Group.SetSelected(r.ItemLabels[len(r.Items)-1])
+	}
 }
 
 func (r RadioGroup) Save() {

@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 	"gopkg.in/yaml.v3"
+	"io"
 
 	//"github.com/faithcomesbyhearing/fcbh-dataset-io/decode_yaml"
 	"github.com/faithcomesbyhearing/fcbh-dataset-io/decode_yaml/request"
@@ -69,11 +72,7 @@ func PresentForm(app fyne.App) {
 	speechToText.SetSelected(1)
 	fieldList = append(fieldList, speechToText)
 
-	compare := NewRadioGroup("compare:")
-	compare.AddItem("compare", "html report of compare",
-		&req.Compare.HTMLReport)
-	compare.AddItem("no_compare", "", &help.Compare_NoCompare)
-	compare.SetSelected(0)
+	compare := NewCheckField("compare:", "html report of comparing two copies of text", true, &req.Compare.HTMLReport)
 	fieldList = append(fieldList, compare)
 
 	gFilter := NewIntField("gordon_filter:",
@@ -82,9 +81,48 @@ func PresentForm(app fyne.App) {
 	fieldList = append(fieldList, gFilter)
 
 	loadButton := widget.NewButton("Load", func() {
-		fmt.Println("Loading...")
+		fileDialog := dialog.NewFileOpen(
+			func(reader fyne.URIReadCloser, err error) {
+				if err != nil {
+					dialog.ShowError(err, myWindow)
+					return
+				}
+				if reader == nil {
+					return // User cancelled
+				}
+				defer reader.Close()
+
+				filePath := reader.URI().Path()
+				fmt.Printf("Loading: %s\n", filePath)
+
+				// Example: Read as string
+				content, err := io.ReadAll(reader)
+				if err != nil {
+					dialog.ShowError(err, myWindow)
+					return
+				}
+				err = yaml.Unmarshal(content, &req)
+				if err != nil {
+					//return nil, fmt.Errorf("failed to parse YAML: %w", err)
+				}
+				for _, field := range fieldList {
+					field.Load()
+				}
+			},
+			myWindow,
+		)
+		fileDialog.SetFilter(storage.NewExtensionFileFilter([]string{".yaml", ".yml"}))
+		listableURI, err := storage.ListerForURI(storage.NewFileURI("./"))
+		if err == nil {
+			fileDialog.SetLocation(listableURI)
+		}
+		fileDialog.Show()
 	})
-	//saveButton := widget.NewButton("Save", func() {
+	clearButton := widget.NewButton("Clear", func() {
+		for _, field := range fieldList {
+			field.Clear()
+		}
+	})
 	saveAction := func() {
 		for _, field := range fieldList {
 			field.Save()
@@ -97,12 +135,21 @@ func PresentForm(app fyne.App) {
 			req.Training.MMSAdapter.WarmupPct = 12
 			req.Training.MMSAdapter.GradNormMax = 0.4
 		}
+		if req.Compare.HTMLReport {
+			req.Compare.CompareSettings.LowerCase = true
+			req.Compare.CompareSettings.RemovePromptChars = true
+			req.Compare.CompareSettings.RemovePunctuation = true
+			req.Compare.CompareSettings.DoubleQuotes.Remove = true
+			req.Compare.CompareSettings.Apostrophe.Remove = true
+			req.Compare.CompareSettings.Hyphen.Remove = true
+			req.Compare.CompareSettings.DiacriticalMarks.NormalizeNFC = true
+		}
 		yamlData, err := yaml.Marshal(&req)
 		if err != nil {
 			fmt.Printf("Error marshaling YAML: %v\n", err)
 			return
 		}
-		filename := req.Username + "_" + req.DatasetName + ".yaml"
+		filename := req.DatasetName + ".yaml"
 		err = os.WriteFile(filename, yamlData, 0644)
 		if err != nil {
 			fmt.Printf("Error writing file: %v\n", err)
@@ -111,19 +158,17 @@ func PresentForm(app fyne.App) {
 		fmt.Println("Saved ", filename)
 	}
 	saveButton := widget.NewButton("Save", saveAction)
-	clearButton := widget.NewButton("Clear", func() {
-		for _, field := range fieldList {
-			field.Clear()
-		}
-	})
 	runButton := widget.NewButton("Run", func() {
 		saveAction()
 		// CODE FOR AWS UPLOAD GOES HERE
 	})
+	quitButton := widget.NewButton("Quit", func() {
+		app.Quit()
+	})
 
 	form := container.NewVBox(
 		widget.NewSeparator(),
-		container.NewGridWithColumns(4, loadButton, saveButton, clearButton, runButton),
+		container.NewGridWithColumns(5, loadButton, saveButton, clearButton, runButton, quitButton),
 		widget.NewSeparator(),
 		datasetName.Container,
 		username.Container,
