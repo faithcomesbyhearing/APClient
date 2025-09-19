@@ -7,25 +7,18 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	"gopkg.in/yaml.v3"
-	"io"
-
 	//"github.com/faithcomesbyhearing/fcbh-dataset-io/decode_yaml"
 	"github.com/faithcomesbyhearing/fcbh-dataset-io/decode_yaml/request"
+	"gopkg.in/yaml.v3"
+	"io"
 	"os"
 )
-
-type RequestHelper struct {
-	Train_MMSAdapter  bool
-	Compare_NoCompare bool
-}
 
 func PresentForm(app fyne.App) {
 	myWindow := app.NewWindow("Artificial Polyglot Processing Request")
 	myWindow.Resize(fyne.NewSize(650, 400))
 
 	var req request.Request
-	var help RequestHelper
 	var fieldList []Field
 	datasetName := NewTextField("dataset_name:",
 		"Enter a unique name for this dataset.", &req.DatasetName)
@@ -49,26 +42,29 @@ func PresentForm(app fyne.App) {
 
 	timestamps := NewRadioGroup("timestamps:")
 	timestamps.AddItem("mms_align", "most accurate, but uses lots of memory",
-		&req.Timestamps.MMSAlign)
+		true, &req.Timestamps.MMSAlign, nil)
 	timestamps.AddItem("mms_fa_verse", "slightly less accurate, but uses less memory",
-		&req.Timestamps.MMSFAVerse)
-	timestamps.AddItem("no_timestamps", "", &req.Timestamps.NoTimestamps)
+		true, &req.Timestamps.MMSFAVerse, nil)
+	timestamps.AddItem("no_timestamps", "",
+		true, &req.Timestamps.NoTimestamps, nil)
 	timestamps.SetSelected(0)
 	fieldList = append(fieldList, timestamps)
 
 	training := NewRadioGroup("training:")
 	training.AddItem("mms_adapter", "training using MMS adapter module",
-		&help.Train_MMSAdapter)
-	training.AddItem("no_training", "", &req.Training.NoTraining)
+		false, nil, &req.Training.MMSAdapter.NumEpochs)
+	training.AddItem("no_training", "",
+		true, &req.Training.NoTraining, nil)
 	training.SetSelected(0)
 	fieldList = append(fieldList, training)
 
 	speechToText := NewRadioGroup("speech_to_text:")
 	speechToText.AddItem("mms_asr", "speech to text using mms",
-		&req.SpeechToText.MMS)
+		true, &req.SpeechToText.MMS, nil)
 	speechToText.AddItem("adapter_asr", "speech to text using trained mms_adapter",
-		&req.SpeechToText.MMSAdapter)
-	speechToText.AddItem("no_speech_to_text", "", &req.SpeechToText.NoSpeechToText)
+		true, &req.SpeechToText.MMSAdapter, nil)
+	speechToText.AddItem("no_speech_to_text", "",
+		true, &req.SpeechToText.NoSpeechToText, nil)
 	speechToText.SetSelected(1)
 	fieldList = append(fieldList, speechToText)
 
@@ -128,7 +124,7 @@ func PresentForm(app fyne.App) {
 			field.Save()
 		}
 		req = templateA(req) // Add defaults from template
-		if help.Train_MMSAdapter {
+		if req.Training.MMSAdapter.NumEpochs != 0 {
 			req.Training.MMSAdapter.NumEpochs = 16
 			req.Training.MMSAdapter.BatchMB = 4
 			req.Training.MMSAdapter.LearningRate = 1e-03

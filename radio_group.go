@@ -10,8 +10,28 @@ import (
 type RadioItem struct {
 	Label       string
 	Description string
-	Value       *bool
+	IsBool      bool
+	BoolValue   *bool
+	IntValue    *int
 }
+
+func (r RadioItem) IsTrue() bool {
+	if r.IsBool {
+		return *r.BoolValue
+	} else {
+		return *r.IntValue != 0
+	}
+}
+func (r RadioItem) SetBool(b bool) {
+	if r.IsBool {
+		*r.BoolValue = b
+	} else if b {
+		*r.IntValue = 1
+	} else {
+		*r.IntValue = 0
+	}
+}
+
 type RadioGroup struct {
 	Label      *widget.Label
 	Group      *widget.RadioGroup
@@ -28,8 +48,10 @@ func NewRadioGroup(label string) RadioGroup {
 	return r
 }
 
-func (r *RadioGroup) AddItem(label string, description string, value *bool) {
-	item := RadioItem{Label: label, Description: description, Value: value}
+func (r *RadioGroup) AddItem(label string, description string, isBool bool,
+	boolValue *bool, intValue *int) {
+	item := RadioItem{Label: label, Description: description, IsBool: isBool,
+		BoolValue: boolValue, IntValue: intValue}
 	r.Items = append(r.Items, item)
 }
 
@@ -46,7 +68,7 @@ func (r *RadioGroup) SetSelected(selected int) {
 func (r RadioGroup) Load() {
 	count := 0
 	for i := range r.Items {
-		if *r.Items[i].Value {
+		if r.Items[i].IsTrue() {
 			r.Group.SetSelected(r.ItemLabels[i])
 			count++
 		}
@@ -59,14 +81,18 @@ func (r RadioGroup) Load() {
 func (r RadioGroup) Save() {
 	option := strings.Split(r.Group.Selected, " ")[0]
 	for i := range r.Items {
-		*r.Items[i].Value = r.Items[i].Label == option
+		if r.Items[i].Label == option {
+			r.Items[i].SetBool(true)
+		} else {
+			r.Items[i].SetBool(false)
+		}
 	}
 }
 
 func (r RadioGroup) Clear() {
 	r.Group.SetSelected(r.ItemLabels[r.Default])
 	for i := range r.Items {
-		*r.Items[i].Value = false
+		r.Items[i].SetBool(false)
 	}
-	*r.Items[r.Default].Value = true
+	r.Items[r.Default].SetBool(true)
 }
