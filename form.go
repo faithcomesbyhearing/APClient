@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	//"github.com/faithcomesbyhearing/fcbh-dataset-io/decode_yaml"
+	"github.com/faithcomesbyhearing/fcbh-dataset-io/decode_yaml"
 	"github.com/faithcomesbyhearing/fcbh-dataset-io/decode_yaml/request"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -17,6 +18,7 @@ import (
 func PresentForm(app fyne.App) {
 	myWindow := app.NewWindow("Artificial Polyglot Processing Request")
 	myWindow.Resize(fyne.NewSize(650, 400))
+	config := loadConfig(myWindow)
 
 	var req request.Request
 	var fieldList []Field
@@ -87,11 +89,6 @@ func PresentForm(app fyne.App) {
 					return // User cancelled
 				}
 				defer reader.Close()
-
-				filePath := reader.URI().Path()
-				fmt.Printf("Loading: %s\n", filePath)
-
-				// Example: Read as string
 				content, err := io.ReadAll(reader)
 				if err != nil {
 					dialog.ShowError(err, myWindow)
@@ -99,7 +96,8 @@ func PresentForm(app fyne.App) {
 				}
 				err = yaml.Unmarshal(content, &req)
 				if err != nil {
-					//return nil, fmt.Errorf("failed to parse YAML: %w", err)
+					dialog.ShowError(err, myWindow)
+					return
 				}
 				for _, field := range fieldList {
 					field.Load()
@@ -119,44 +117,46 @@ func PresentForm(app fyne.App) {
 			field.Clear()
 		}
 	})
-	saveAction := func() {
+	createAction := func() []byte {
 		for _, field := range fieldList {
 			field.Save()
 		}
-		req = templateA(req) // Add defaults from template
+		req.IsNew = config.IsNew
+		req.NotifyOk = config.NotifyOk
+		req.NotifyErr = config.NotifyErr
 		if req.Training.MMSAdapter.NumEpochs != 0 {
-			req.Training.MMSAdapter.NumEpochs = 16
-			req.Training.MMSAdapter.BatchMB = 4
-			req.Training.MMSAdapter.LearningRate = 1e-03
-			req.Training.MMSAdapter.WarmupPct = 12
-			req.Training.MMSAdapter.GradNormMax = 0.4
+			req.Training.MMSAdapter = config.MMSAdapter
 		}
 		if req.Compare.HTMLReport {
-			req.Compare.CompareSettings.LowerCase = true
-			req.Compare.CompareSettings.RemovePromptChars = true
-			req.Compare.CompareSettings.RemovePunctuation = true
-			req.Compare.CompareSettings.DoubleQuotes.Remove = true
-			req.Compare.CompareSettings.Apostrophe.Remove = true
-			req.Compare.CompareSettings.Hyphen.Remove = true
-			req.Compare.CompareSettings.DiacriticalMarks.NormalizeNFC = true
+			req.Compare.CompareSettings = config.CompareSettings
 		}
 		yamlData, err := yaml.Marshal(&req)
 		if err != nil {
-			fmt.Printf("Error marshaling YAML: %v\n", err)
-			return
+			dialog.ShowError(err, myWindow)
+			return []byte{}
 		}
-		filename := req.DatasetName + ".yaml"
-		err = os.WriteFile(filename, yamlData, 0644)
-		if err != nil {
-			fmt.Printf("Error writing file: %v\n", err)
-			return
+		decoder := decode_yaml.NewRequestDecoder(context.Background())
+		_, status := decoder.Process(yamlData)
+		if status != nil {
+			dialog.ShowError(errors.New(status.Message), myWindow)
+			return []byte{}
 		}
-		fmt.Println("Saved ", filename)
+		return yamlData
 	}
-	saveButton := widget.NewButton("Save", saveAction)
+	saveButton := widget.NewButton("Save", func() {
+		yamlData := createAction()
+		if len(yamlData) > 0 {
+			_ = saveFile(req, yamlData, myWindow)
+		}
+	})
 	runButton := widget.NewButton("Run", func() {
-		saveAction()
-		// CODE FOR AWS UPLOAD GOES HERE
+		yamlData := createAction()
+		if len(yamlData) > 0 {
+			filename := saveFile(req, yamlData, myWindow)
+			if len(filename) > 0 {
+				enqueueYaml(filename, yamlData, config.QueueBucket, myWindow)
+			}
+		}
 	})
 	quitButton := widget.NewButton("Quit", func() {
 		app.Quit()
@@ -182,4 +182,14 @@ func PresentForm(app fyne.App) {
 
 	myWindow.SetContent(scrollableForm)
 	myWindow.ShowAndRun()
+}
+
+func saveFile(req request.Request, yamlData []byte, window fyne.Window) string {
+	filename := req.DatasetName + ".yaml"
+	err := os.WriteFile(filename, yamlData, 0644)
+	if err != nil {
+		dialog.ShowError(err, window)
+		return ""
+	}
+	return filename
 }
