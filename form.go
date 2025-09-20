@@ -94,6 +94,7 @@ func PresentForm(app fyne.App) {
 					dialog.ShowError(err, myWindow)
 					return
 				}
+				req = request.Request{}
 				err = yaml.Unmarshal(content, &req)
 				if err != nil {
 					dialog.ShowError(err, myWindow)
@@ -113,6 +114,7 @@ func PresentForm(app fyne.App) {
 		fileDialog.Show()
 	})
 	clearButton := widget.NewButton("Clear", func() {
+		req = request.Request{}
 		for _, field := range fieldList {
 			field.Clear()
 		}
