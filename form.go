@@ -74,8 +74,8 @@ func PresentForm(app fyne.App) {
 	fieldList = append(fieldList, compare)
 
 	gFilter := NewIntField("gordon_filter:",
-		"Enter 4 for filter, leave blank for no filter.",
-		&req.Compare.GordonFilter)
+		"Enter 4 for filter, or zero for no filter.",
+		&req.Compare.GordonFilter, myWindow)
 	fieldList = append(fieldList, gFilter)
 
 	loadButton := widget.NewButton("Load", func() {
