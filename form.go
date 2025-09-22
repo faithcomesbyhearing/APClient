@@ -16,7 +16,7 @@ import (
 )
 
 func PresentForm(app fyne.App) {
-	myWindow := app.NewWindow("Artificial Polyglot Processing Request")
+	myWindow := app.NewWindow("Artificial Polyglot Run Request")
 	myWindow.Resize(fyne.NewSize(650, 400))
 	config := loadConfig(myWindow)
 
@@ -78,7 +78,7 @@ func PresentForm(app fyne.App) {
 		&req.Compare.GordonFilter, myWindow)
 	fieldList = append(fieldList, gFilter)
 
-	loadButton := widget.NewButton("Load", func() {
+	loadButton := widget.NewButton("Open", func() {
 		fileDialog := dialog.NewFileOpen(
 			func(reader fyne.URIReadCloser, err error) {
 				if err != nil {
