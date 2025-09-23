@@ -10,4 +10,5 @@ $env:GOOS = "windows"
 $env:GOARCH = "amd64"
 GOOS=windows GOARCH=amd64 go mod download
 GOOS=windows GOARCH=amd64 CGO_ENABLED=1 go build .
-GOOS=windows GOARCH=amd64 CGO_ENABLED=1 go build -o APClient.exe .
+go build -o bin/APClient
+GOOS=windows GOARCH=amd64 CGO_ENABLED=1 go build -o bin/APClient.exe .
