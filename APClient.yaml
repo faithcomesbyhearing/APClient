@@ -1,0 +1,29 @@
+queue_bucket: dataset-queue-dev
+is_new: true
+notify_ok:
+    - jbarndt@fcbhmail.org
+    - ezornes@fcbhmail.org
+    - gfiddes@fcbhmail.org
+    - edomschot@fcbhmail.org
+notify_err:
+    - jbarndt@fcbhmail.org
+    - gary@shortsands.com
+    - ezornes@fcbhmail.org
+mms_adapter:
+    batch_mb: 4
+    num_epochs: 16
+    learning_rate: 0.001
+    warmup_pct: 12
+    grad_norm_max: 0.4
+compare_settings:
+    lower_case: true
+    remove_prompt_chars: true
+    remove_punctuation: true
+    double_quotes:
+        remove: true
+    apostrophe:
+        remove: true
+    hyphen:
+        remove: true
+    diacritical_marks:
+        normalize_nfc: true
