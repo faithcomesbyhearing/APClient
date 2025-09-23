@@ -1,4 +1,4 @@
-##APClient Program
+## APClient Program
 
 This program creates and modifies request.yaml files and submits them to an input queue
 for the artificial-polyglot server.
