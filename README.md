@@ -5,6 +5,10 @@ for the artificial-polyglot server.
 
 Build and installation instructions:
 
+To download this repository:
+```
+git clone https://github.com/faithcomesbyhearing/APClient.git
+```
 To build the app for MacOS, in project root: 
 ```
 go build -o bin/APClient .
