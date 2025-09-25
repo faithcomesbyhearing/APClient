@@ -13,9 +13,11 @@ To build the app for MacOS, in project root:
 ```
 go build -o bin/APClient .
 ```
-to build the app for Windows, in project root:
+to build the app for Windows, clone the project to a Windows machine, and in project root
+do the instructions below. The second line create a zip file containing the executable 
+and the installer.
 ```
-GOOS=windows GOARCH=amd64 go build -o bin/APClient.exe .
+go build -o bin/APClient.exe .
 Compress-Archive -Path "bin\*" -DestinationPath "apclient.zip"
 ```
 To install the program, copy the apclient.zip file to each user's machine.  
